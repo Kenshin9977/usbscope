@@ -10,6 +10,12 @@ namespace UsbScope.Providers.Windows.Interop;
 /// Reads DEVPKEY_Device_UsbSpeed for a given device instance ID via
 /// the Configuration Manager. Returns Unknown for anything we can't read,
 /// never throws — this is best-effort enrichment.
+///
+/// Limitation: empirically, modern Windows USB devices do not expose
+/// the documented `{83DA6326-...} 4` UsbSpeed DEVPROPKEY (the slot is
+/// reused by the driver-info property set). Reliable per-device speed
+/// requires `IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX` on the
+/// parent hub — see UsbDeviceTreeReader (next iteration).
 [SupportedOSPlatform("windows10.0.22621.0")]
 internal static class UsbSpeedReader
 {

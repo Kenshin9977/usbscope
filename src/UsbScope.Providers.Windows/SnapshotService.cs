@@ -2,6 +2,7 @@ using System.Runtime.Versioning;
 using UsbScope.Core.Models;
 using UsbScope.Core.Providers;
 using UsbScope.Providers.Windows.Providers;
+using UsbScope.Providers.Windows.UsbDevices;
 
 namespace UsbScope.Providers.Windows;
 
@@ -85,11 +86,24 @@ public sealed class SnapshotService : ISnapshotService
         if (ports.Count == 0 && activePortProviders.Count > 0)
             diagnostics.Add("No USB ports detected. Firmware reports no USB connectors. This is unusual — check that SMBIOS Type 8 records are present (`wmic path Win32_PortConnector get`).");
 
+        var devices = new List<ConnectedDevice>();
+        try
+        {
+            await foreach (var d in UsbDeviceEnumerator.EnumerateAsync(ct).WithCancellation(ct))
+                devices.Add(d);
+            providerNames.Add("usb:device-tree");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            diagnostics.Add($"USB device enumerator threw: {ex.GetType().Name}: {ex.Message}");
+        }
+
         return new PortSnapshot
         {
             CapturedAt = DateTimeOffset.Now,
             HostMachine = Environment.MachineName,
             Ports = ports,
+            Devices = devices,
             ProviderNames = providerNames,
             Diagnostics = diagnostics,
         };
