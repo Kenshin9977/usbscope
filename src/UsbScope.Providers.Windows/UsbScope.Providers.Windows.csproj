@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UsbScope.Core\UsbScope.Core.csproj" />
+    <ProjectReference Include="..\UsbScope.Providers.Ucsi\UsbScope.Providers.Ucsi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using UsbScope.Core.Models;
 using UsbScope.Core.Providers;
+using UsbScope.Providers.Ucsi;
 using UsbScope.Providers.Windows.Providers;
 using UsbScope.Providers.Windows.UsbDevices;
 
@@ -17,15 +18,22 @@ public sealed class SnapshotService : ISnapshotService
     private readonly IReadOnlyList<IPowerProvider> _powerProviders;
     private readonly IReadOnlyList<IVendorProvider> _vendorProviders;
 
-    /// Default constructor wires the Phase 1 Windows providers.
-    /// Tests and Phase 2 callers can construct directly. Port providers
-    /// run in declaration order; the aggregator dedupes by PortId so
-    /// the *first* provider to surface a given port wins. We list
-    /// SMBIOS first because it gives us a stable physical-port id
-    /// that doesn't depend on the OEM exposing a UCM stack.
+    /// Default constructor wires the standard Windows providers.
+    /// Tests can construct directly with fakes. Port providers run in
+    /// declaration order; the aggregator dedupes by PortId so the
+    /// *first* provider to surface a given port wins.
+    ///
+    /// Order rationale:
+    ///   1. SMBIOS  — every PC, physical port list, no driver needed.
+    ///   2. UCSI    — Phase 2 driver. Adds PD negotiation data per UCSI
+    ///                connector. Probed first via PING IOCTL; if the
+    ///                driver isn't installed, the provider is skipped
+    ///                cleanly.
+    ///   3. WmiUcm  — legacy fallback for older UCM stacks where the
+    ///                driver isn't yet attached.
     public SnapshotService()
         : this(
-            [new SmbiosPortProvider(), new WmiPortProvider()],
+            [new SmbiosPortProvider(), new UcsiPortProvider(), new WmiPortProvider()],
             [new WmiBatteryPowerProvider()],
             [new DellVendorProvider(), new LenovoVendorProvider()])
     {
