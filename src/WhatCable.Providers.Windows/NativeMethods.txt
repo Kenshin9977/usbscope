@@ -1,0 +1,38 @@
+// SetupAPI — device enumeration
+SetupDiGetClassDevsW
+SetupDiEnumDeviceInterfaces
+SetupDiGetDeviceInterfaceDetailW
+SetupDiEnumDeviceInfo
+SetupDiDestroyDeviceInfoList
+SetupDiGetDevicePropertyW
+
+// Configuration Manager — device tree
+CM_Get_Device_ID_Size
+CM_Get_Device_IDW
+CM_Get_Parent
+CM_Get_Child
+CM_Get_Sibling
+CM_Get_DevNode_PropertyW
+CM_Locate_DevNodeW
+CM_Get_Device_Interface_ListW
+CM_Get_Device_Interface_List_SizeW
+
+// USB — interface GUIDs from Win32 metadata
+GUID_DEVINTERFACE_USB_HUB
+GUID_DEVINTERFACE_USB_DEVICE
+GUID_DEVINTERFACE_USB_HOST_CONTROLLER
+
+// Common device property keys
+DEVPKEY_Device_FriendlyName
+DEVPKEY_Device_DeviceDesc
+DEVPKEY_Device_Manufacturer
+DEVPKEY_Device_HardwareIds
+DEVPKEY_Device_InstanceId
+DEVPKEY_Device_BusReportedDeviceDesc
+DEVPKEY_Device_LocationInfo
+DEVPKEY_Device_Parent
+DEVPKEY_Device_Class
+DEVPKEY_Device_Service
+
+// CONFIGRET enum members
+CONFIGRET
