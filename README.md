@@ -14,16 +14,19 @@ UsbScope explores how much of that value can be delivered without a custom drive
 
 ## Coverage by phase
 
-| Source              | Phase 1 (current)                     | Phase 2 (driver)        | Phase 3 (UCSI 2.0+)     |
-|---------------------|----------------------------------------|--------------------------|--------------------------|
-| Physical ports      | SMBIOS Type 8 (`Win32_PortConnector`) | —                        | —                        |
-| Connected device    | USB device tree (cfgmgr32 + IOCTL)    | —                        | —                        |
-| Negotiated speed    | `DEVPKEY_Device_UsbSpeed`             | —                        | —                        |
-| Vendor/product name | embedded `usb.ids`                    | —                        | —                        |
-| Cable e-marker      | USB Billboard descriptor *if present* | —                        | UCSI `GET_PD_MESSAGE`    |
-| PD contract / PDOs  | vendor WMI when published             | UCSI `GET_PDOS`          | —                        |
-| Charging power      | battery WMI (`BatteryStatus`)         | UCSI per-port            | —                        |
-| Vendor extras       | Dell `DCIM_*`, Lenovo `Lenovo_*`      | —                        | —                        |
+| Source                  | Phase 1 (current)                      | Phase 2 (driver)         | Phase 3 (UCSI 2.0+)        |
+|-------------------------|----------------------------------------|--------------------------|----------------------------|
+| Physical ports          | SMBIOS Type 8 (`Win32_PortConnector`)  | —                        | —                          |
+| Connected device list   | `Win32_PnPEntity` + cfgmgr32           | —                        | —                          |
+| Negotiated speed        | hub IOCTL (`USB_NODE_CONNECTION_INFO`) | —                        | —                          |
+| Vendor/product name     | embedded `usb.ids`                     | —                        | —                          |
+| USB-C Alt Mode adverts  | Billboard descriptor (planned)         | —                        | —                          |
+| Cable e-marker / VDOs   | —                                      | —                        | UCSI `GET_PD_MESSAGE`      |
+| PD contract / PDOs      | vendor WMI when published              | UCSI `GET_PDOS`          | —                          |
+| Charging power          | battery WMI (`BatteryStatus`)          | UCSI per-port            | —                          |
+| Vendor extras           | Dell `DCIM_*`, Lenovo `Lenovo_*`       | —                        | —                          |
+
+**Note on Billboard vs. e-marker:** USB-IF Billboard descriptors expose *Alternate Mode advertisements* on a device (e.g. a USB-C dock saying "I support DisplayPort Alt Mode") — they do **not** carry cable e-marker / VDO data. The cable's e-marker info lives on the cable's PD chip and is only reachable via UCSI Discover Identity (Phase 3).
 
 Phase 2 is a signed KMDF filter on the UCM-UCSI ACPI device exposing IOCTLs to userspace (EV signing + eventual WHQL). Phase 3 needs Windows 11 22H2 Sept Update+ on hardware that implements UCSI 2.0 — practically ~70% of modern Win 11 laptops, none of the older Intel / pre-Phoenix AMD ones.
 

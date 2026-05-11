@@ -21,14 +21,13 @@ public partial class PortsWindow : Window
 
     private async Task RefreshAsync()
     {
-        StatusText.Text = "Reading USB-C state…";
+        StatusText.Text = "Reading USB state…";
         try
         {
             var snapshot = await _snapshotService.CaptureAsync();
             PortsList.ItemsSource = snapshot.Ports;
-            StatusText.Text = snapshot.Ports.Count == 0
-                ? "No USB-C ports detected yet — providers will land in upcoming commits."
-                : $"{snapshot.Ports.Count} port(s) — captured {snapshot.CapturedAt:HH:mm:ss}";
+            DevicesList.ItemsSource = snapshot.Devices;
+            StatusText.Text = $"{snapshot.Ports.Count} port(s), {snapshot.Devices.Count} device(s) — captured {snapshot.CapturedAt:HH:mm:ss}";
         }
         catch (Exception ex)
         {
