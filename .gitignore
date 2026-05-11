@@ -1,0 +1,69 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Oo]ut/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+ARM/
+ARM64/
+[Pp]ublish/
+publish/
+
+# .NET / Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.tlog
+*.pdb
+*.dll.config
+*.exe.config
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.nuget/
+*.nupkg
+*.snupkg
+.idea/
+*.iml
+
+# Rider
+.idea/
+
+# JetBrains ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Local secrets / env
+*.local.json
+secrets.json
+.env
+.env.local

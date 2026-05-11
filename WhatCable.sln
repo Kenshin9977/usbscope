@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2853EC93-D523-4481-8747-9F7C20706887}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCable.Core", "src\WhatCable.Core\WhatCable.Core.csproj", "{41E198FA-2A90-4583-82A8-0AF8DB333C65}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCable.Tray", "src\WhatCable.Tray\WhatCable.Tray.csproj", "{0FCC7925-CB62-483B-8AE8-18C4C1496A0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCable.Cli", "src\WhatCable.Cli\WhatCable.Cli.csproj", "{71D17241-B32F-448C-83FC-75E4EE1FEDD1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{BAEBDEF8-B6D4-4583-8728-1EF08E8CB174}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCable.Core.Tests", "tests\WhatCable.Core.Tests\WhatCable.Core.Tests.csproj", "{4657DD20-E3CD-4468-A20D-ACF078F0A275}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCable.Providers.Windows", "src\WhatCable.Providers.Windows\WhatCable.Providers.Windows.csproj", "{D346C71A-2161-4138-B08A-D4F2983A726B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41E198FA-2A90-4583-82A8-0AF8DB333C65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41E198FA-2A90-4583-82A8-0AF8DB333C65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41E198FA-2A90-4583-82A8-0AF8DB333C65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41E198FA-2A90-4583-82A8-0AF8DB333C65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FCC7925-CB62-483B-8AE8-18C4C1496A0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FCC7925-CB62-483B-8AE8-18C4C1496A0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FCC7925-CB62-483B-8AE8-18C4C1496A0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FCC7925-CB62-483B-8AE8-18C4C1496A0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71D17241-B32F-448C-83FC-75E4EE1FEDD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71D17241-B32F-448C-83FC-75E4EE1FEDD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71D17241-B32F-448C-83FC-75E4EE1FEDD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71D17241-B32F-448C-83FC-75E4EE1FEDD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4657DD20-E3CD-4468-A20D-ACF078F0A275}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4657DD20-E3CD-4468-A20D-ACF078F0A275}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4657DD20-E3CD-4468-A20D-ACF078F0A275}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4657DD20-E3CD-4468-A20D-ACF078F0A275}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D346C71A-2161-4138-B08A-D4F2983A726B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D346C71A-2161-4138-B08A-D4F2983A726B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D346C71A-2161-4138-B08A-D4F2983A726B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D346C71A-2161-4138-B08A-D4F2983A726B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{41E198FA-2A90-4583-82A8-0AF8DB333C65} = {2853EC93-D523-4481-8747-9F7C20706887}
+		{0FCC7925-CB62-483B-8AE8-18C4C1496A0F} = {2853EC93-D523-4481-8747-9F7C20706887}
+		{71D17241-B32F-448C-83FC-75E4EE1FEDD1} = {2853EC93-D523-4481-8747-9F7C20706887}
+		{4657DD20-E3CD-4468-A20D-ACF078F0A275} = {BAEBDEF8-B6D4-4583-8728-1EF08E8CB174}
+		{D346C71A-2161-4138-B08A-D4F2983A726B} = {2853EC93-D523-4481-8747-9F7C20706887}
+	EndGlobalSection
+EndGlobal

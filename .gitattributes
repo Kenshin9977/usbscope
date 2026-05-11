@@ -1,0 +1,13 @@
+* text=auto eol=crlf
+
+*.sh    text eol=lf
+*.bash  text eol=lf
+
+*.png   binary
+*.ico   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.dll   binary
+*.exe   binary
+*.snk   binary
