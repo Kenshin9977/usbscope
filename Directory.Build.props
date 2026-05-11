@@ -10,9 +10,9 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Authors>Kenshin9977</Authors>
-    <Company>WhatCable for Windows contributors</Company>
+    <Company>UsbScope contributors</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/Kenshin9977/whatcable-win</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Kenshin9977/usbscope</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 

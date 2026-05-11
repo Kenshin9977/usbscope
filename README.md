@@ -1,63 +1,64 @@
-# WhatCable for Windows
+# UsbScope
 
-> Tells you what your USB-C cable actually is, what's negotiated, and what's bottlenecking charging — on Windows.
+> See every USB port on your Windows machine, what's plugged in, at what speed, and (for USB-C) what the cable and PD contract actually are.
 
-A Windows tray utility inspired by [WhatCable](https://www.whatcable.uk/) (macOS). Decodes USB-C cable e-marker data, PD negotiation, and charging bottlenecks in plain English.
+A Windows tray + CLI utility. Tells you in plain English what each USB port on the host is, what's connected, the negotiated speed, and — on USB-C — the cable e-marker info, PD negotiation, and charging bottleneck. Inspired by macOS [WhatCable](https://www.whatcable.uk/), but scoped to *all* USB ports, not only Type-C.
 
 **Status:** Phase 1 — userspace-only MVP. No driver yet.
 
 ## Why this exists
 
-macOS exposes USB-C cable VDOs and PD PDOs directly to userspace via IOKit, which is how WhatCable works. Windows doesn't have an equivalent: the data flows through UCSI (USB Type-C Connector System Software Interface) between the embedded controller and `UcmUcsiCx.sys`, but no public userspace API surfaces it. Linux has `/sys/class/typec/`; Windows doesn't.
+On macOS, WhatCable reads USB-C cable VDOs and PD PDOs directly from IOKit. On Windows that data flows through UCSI (USB Type-C Connector System Software Interface) between the embedded controller and `UcmUcsiCx.sys`, with no public userspace API. Linux has `/sys/class/typec/`; Windows doesn't.
 
-This project explores how much of WhatCable's value can be delivered on Windows without a custom driver, and lays the groundwork for a signed UCSI filter driver if Phase 1 falls short.
+UsbScope explores how much of that value can be delivered without a custom driver — and broadens the scope to USB-A / Mini-B / Micro-B as well, because "is my USB 3.0 disk negotiating at USB 2.0?" is a real diagnostic question we already have the data to answer.
 
-## Phasing
+## Coverage by phase
 
-### Phase 1 — Userspace MVP (current)
-Pure .NET 8, no custom driver. Pulls:
-- USB-C port topology via SetupAPI / WMI (`Win32_USBHub`, `Win32_USBController`)
-- Negotiated speeds per device
-- Charging power via battery WMI classes (`BatteryStatus`, `MSBatteryClass`)
-- Vendor-specific PD info where available (Dell `DCIM_*`, Lenovo `Lenovo_*` WMI namespaces)
-- Charge-source bottleneck inference
+| Source              | Phase 1 (current)                     | Phase 2 (driver)        | Phase 3 (UCSI 2.0+)     |
+|---------------------|----------------------------------------|--------------------------|--------------------------|
+| Physical ports      | SMBIOS Type 8 (`Win32_PortConnector`) | —                        | —                        |
+| Connected device    | USB device tree (cfgmgr32 + IOCTL)    | —                        | —                        |
+| Negotiated speed    | `DEVPKEY_Device_UsbSpeed`             | —                        | —                        |
+| Vendor/product name | embedded `usb.ids`                    | —                        | —                        |
+| Cable e-marker      | USB Billboard descriptor *if present* | —                        | UCSI `GET_PD_MESSAGE`    |
+| PD contract / PDOs  | vendor WMI when published             | UCSI `GET_PDOS`          | —                        |
+| Charging power      | battery WMI (`BatteryStatus`)         | UCSI per-port            | —                        |
+| Vendor extras       | Dell `DCIM_*`, Lenovo `Lenovo_*`      | —                        | —                        |
 
-Goal: deliver ~60% of WhatCable's value with zero driver work. Validation milestone before committing to Phase 2.
-
-### Phase 2 — UCSI access via signed KMDF filter driver
-Attach a filter to the UCM-UCSI ACPI device, expose IOCTLs to userspace. Surfaces PDOs, `GET_CABLE_PROPERTY`, `GET_CONNECTOR_STATUS`. Requires EV code signing and eventual WHQL.
-
-### Phase 3 — Discover Identity / e-marker VDO decode
-Requires UCSI 2.0+ (Windows 11 22H2 Sept Update+). Realistic coverage: ~70% of recent Windows 11 hardware. Intel 11th gen and pre-Phoenix AMD will not work.
+Phase 2 is a signed KMDF filter on the UCM-UCSI ACPI device exposing IOCTLs to userspace (EV signing + eventual WHQL). Phase 3 needs Windows 11 22H2 Sept Update+ on hardware that implements UCSI 2.0 — practically ~70% of modern Win 11 laptops, none of the older Intel / pre-Phoenix AMD ones.
 
 ## Architecture
 
 ```
-WhatCable.sln
+UsbScope.sln
 ├── src/
-│   ├── WhatCable.Core/      class library — models, provider interfaces
-│   ├── WhatCable.Tray/      WPF tray app
-│   └── WhatCable.Cli/       console app, `whatcable.exe --json`
+│   ├── UsbScope.Core/                    cross-platform models, provider interfaces, usb.ids DB
+│   ├── UsbScope.Providers.Windows/       SMBIOS / WMI / cfgmgr32 / CsWin32 interop
+│   ├── UsbScope.Tray/                    WPF tray app
+│   └── UsbScope.Cli/                     `usbscope.exe --json`
 └── tests/
-    └── WhatCable.Core.Tests/
+    ├── UsbScope.Core.Tests/
+    └── UsbScope.Providers.Windows.Tests/
 ```
 
-Providers are pluggable behind `IPortProvider`, `IPowerProvider`, `IVendorProvider` so a `UcsiProvider` can slot in for Phase 2 without rewriting the UI.
+Providers are pluggable behind `IPortProvider`, `IPowerProvider`, `IVendorProvider`. A future `UcsiProvider` slots in for Phase 2 with no UI changes. The aggregator dedupes ports by `PortId` (stable, derived from the SMBIOS designator when available) so multiple providers can contribute data to the same port.
 
 ## Requirements
 
 - Windows 11 23H2 or later
 - x64 or ARM64
-- .NET 8 Desktop Runtime (bundled in single-file publish)
+- .NET 10 Desktop Runtime (bundled in single-file publish)
 
 ## Build
 
 ```powershell
 dotnet build
-dotnet run --project src/WhatCable.Tray
-dotnet run --project src/WhatCable.Cli -- --json
+dotnet run --project src/UsbScope.Tray
+dotnet run --project src/UsbScope.Cli -- --json
 ```
 
 ## License
 
 MIT. Open source from day one.
+
+The embedded `usb.ids` database is © its contributors, dual-licensed under GPL-2.0-or-later and 3-clause BSD; UsbScope redistributes under the BSD-3 option. See `src/UsbScope.Core/Data/README.md`.

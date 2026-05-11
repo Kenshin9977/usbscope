@@ -1,0 +1,25 @@
+<Window x:Class="UsbScope.Tray.PortsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="UsbScope"
+        Width="520" Height="420"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize">
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="USB-C ports" FontSize="18" FontWeight="SemiBold" />
+            <Button Content="Refresh" Margin="16,0,0,0" Padding="10,2" Click="OnRefreshClick" />
+        </StackPanel>
+        <TextBlock Name="StatusText" DockPanel.Dock="Bottom" Foreground="Gray" Margin="0,8,0,0" />
+        <ListView Name="PortsList">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Port" Width="120" DisplayMemberBinding="{Binding Label}" />
+                    <GridViewColumn Header="Device" Width="200" DisplayMemberBinding="{Binding Device.FriendlyName}" />
+                    <GridViewColumn Header="Speed" Width="100" DisplayMemberBinding="{Binding Device.NegotiatedRate}" />
+                    <GridViewColumn Header="Power" Width="80" DisplayMemberBinding="{Binding Power.ObservedChargeRateW}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</Window>
