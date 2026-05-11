@@ -17,10 +17,14 @@ public sealed class SnapshotService : ISnapshotService
     private readonly IReadOnlyList<IVendorProvider> _vendorProviders;
 
     /// Default constructor wires the Phase 1 Windows providers.
-    /// Tests and Phase 2 callers can construct directly.
+    /// Tests and Phase 2 callers can construct directly. Port providers
+    /// run in declaration order; the aggregator dedupes by PortId so
+    /// the *first* provider to surface a given port wins. We list
+    /// SMBIOS first because it gives us a stable physical-port id
+    /// that doesn't depend on the OEM exposing a UCM stack.
     public SnapshotService()
         : this(
-            [new WmiPortProvider()],
+            [new SmbiosPortProvider(), new WmiPortProvider()],
             [new WmiBatteryPowerProvider()],
             [new DellVendorProvider(), new LenovoVendorProvider()])
     {
@@ -50,12 +54,20 @@ public sealed class SnapshotService : ISnapshotService
         providerNames.AddRange(activePowerProviders.Select(p => p.Name));
         providerNames.AddRange(activeVendorProviders.Select(p => "vendor:" + p.VendorName));
 
+        var seenPortIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in activePortProviders)
         {
             try
             {
                 await foreach (var port in provider.EnumeratePortsAsync(ct).WithCancellation(ct))
+                {
+                    if (!seenPortIds.Add(port.PortId))
+                    {
+                        diagnostics.Add($"port provider '{provider.Name}' reported a duplicate PortId '{port.PortId}'; first wins.");
+                        continue;
+                    }
                     ports.Add(port);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -71,7 +83,7 @@ public sealed class SnapshotService : ISnapshotService
         }
 
         if (ports.Count == 0 && activePortProviders.Count > 0)
-            diagnostics.Add("No USB-C ports surfaced — your machine likely doesn't expose UCM connectors to user mode (older OEM stacks, Intel ME-only PD). Phase 2 driver path is required for these systems.");
+            diagnostics.Add("No USB ports detected. Firmware reports no USB connectors. This is unusual — check that SMBIOS Type 8 records are present (`wmic path Win32_PortConnector get`).");
 
         return new PortSnapshot
         {

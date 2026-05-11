@@ -76,7 +76,7 @@ public class SnapshotServiceTests
         var snapshot = await service.CaptureAsync();
 
         Assert.Empty(snapshot.Ports);
-        Assert.Contains(snapshot.Diagnostics, d => d.Contains("No USB-C ports surfaced"));
+        Assert.Contains(snapshot.Diagnostics, d => d.Contains("No USB ports detected"));
     }
 
     [Fact]
