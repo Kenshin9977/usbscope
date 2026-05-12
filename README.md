@@ -1,56 +1,71 @@
 # UsbScope
 
-> See every USB port on your Windows machine, what's plugged in, at what speed, and (for USB-C) what the cable and PD contract actually are.
+> See every USB port and device on your Windows machine. On hardware that exposes USB-PD, see what the cable and PD contract actually are too.
 
-A Windows tray + CLI utility. Tells you in plain English what each USB port on the host is, what's connected, the negotiated speed, and — on USB-C — the cable e-marker info, PD negotiation, and charging bottleneck. Inspired by macOS [WhatCable](https://www.whatcable.uk/), but scoped to *all* USB ports, not only Type-C.
+A Windows tray + CLI utility. Tells you in plain English what each USB port on the host is, what's connected, the negotiated speed, and — on supported hardware — the cable e-marker, PD negotiation, and Alt Mode advertisements. Inspired by macOS [WhatCable](https://www.whatcable.uk/), but broader: it covers USB-A and Mini/Micro-B too because "is my USB 3.0 disk negotiating at USB 2.0?" is a real diagnostic question on every PC.
 
-**Status:** Phase 1 — userspace-only MVP. No driver yet.
+**Status:** Phase 1, 1.5 and 3 land. Phase 2 driver is scaffolded; the IOCTL surface is defined but the UCM-UCSI filter logic is the next iteration.
 
-## Why this exists
+## What it shows (and where the data comes from)
 
-On macOS, WhatCable reads USB-C cable VDOs and PD PDOs directly from IOKit. On Windows that data flows through UCSI (USB Type-C Connector System Software Interface) between the embedded controller and `UcmUcsiCx.sys`, with no public userspace API. Linux has `/sys/class/typec/`; Windows doesn't.
+| Field                          | Source on Windows                        | Where it works                 |
+|--------------------------------|------------------------------------------|--------------------------------|
+| Physical ports list            | SMBIOS Type 8 (`Win32_PortConnector`)   | Every PC with a BIOS           |
+| Connected devices              | `Win32_PnPEntity` + cfgmgr32             | Every Windows machine          |
+| Negotiated speed (LS/FS/HS/SS) | Hub IOCTL `GET_NODE_CONNECTION_INFO_EX` | Every Windows machine          |
+| Vendor + product names         | Embedded `usb.ids` (Linux DB)            | Every Windows machine          |
+| USB-C Alt Mode adverts         | BOS Billboard descriptor (hub IOCTL)     | Every Windows machine *if* the connected device advertises Billboard |
+| PD contract (negotiated PDO)   | UCSI via Phase 2 driver                  | Only UCSI-capable hardware     |
+| Cable e-marker / VDOs          | UCSI Discover Identity via Phase 2 driver| Only UCSI-capable hardware     |
+| Per-port partner type, role    | UCSI                                     | Only UCSI-capable hardware     |
+| Charging power (host-wide)     | `BatteryStatus` WMI                      | Every Windows laptop with battery |
+| Vendor extras (Dell/Lenovo)    | `DCIM_*` / `Lenovo_*` WMI                | When those WMI namespaces exist|
 
-UsbScope explores how much of that value can be delivered without a custom driver — and broadens the scope to USB-A / Mini-B / Micro-B as well, because "is my USB 3.0 disk negotiating at USB 2.0?" is a real diagnostic question we already have the data to answer.
+## Hardware compatibility (honest)
 
-## Coverage by phase
+USB-PD / UCSI data is only as good as the hardware. Microsoft mandates UCSI on **Windows 11–certified laptops that ship with USB-C**, which makes laptops the primary target for the full feature set:
 
-| Source                  | Phase 1 (current)                      | Phase 2 (driver)         | Phase 3 (UCSI 2.0+)        |
-|-------------------------|----------------------------------------|--------------------------|----------------------------|
-| Physical ports          | SMBIOS Type 8 (`Win32_PortConnector`)  | —                        | —                          |
-| Connected device list   | `Win32_PnPEntity` + cfgmgr32           | —                        | —                          |
-| Negotiated speed        | hub IOCTL (`USB_NODE_CONNECTION_INFO`) | —                        | —                          |
-| Vendor/product name     | embedded `usb.ids`                     | —                        | —                          |
-| USB-C Alt Mode adverts  | Billboard descriptor (planned)         | —                        | —                          |
-| Cable e-marker / VDOs   | —                                      | —                        | UCSI `GET_PD_MESSAGE`      |
-| PD contract / PDOs      | vendor WMI when published              | UCSI `GET_PDOS`          | —                          |
-| Charging power          | battery WMI (`BatteryStatus`)          | UCSI per-port            | —                          |
-| Vendor extras           | Dell `DCIM_*`, Lenovo `Lenovo_*`       | —                        | —                          |
+| Category                                              | UCSI typically exposed? | Coverage |
+|-------------------------------------------------------|-------------------------|----------|
+| Windows 11 laptops with USB-C (Surface, ThinkPad, XPS, Framework, …) | ✅ Microsoft cert mandates it | ~85–90% of recent Win11 laptops |
+| Intel desktop boards Z690/Z790 with integrated TB4    | ✅ Most                 | High-end Intel desktops        |
+| AM5 boards with explicit USB4 / TB (X670E with WiFi/TB) | ✅ Some, model-dependent | Enthusiast AM5                |
+| AM5 entry/mid (B650, A620)                            | ❌ Usually no           | Most consumer AM5              |
+| AM4 (X570 / B550 / X470 / B450 / A520 / A320)         | ❌ Almost never         | Huge install base — not covered for Phase 2/3 |
+| Intel H/B-series desktop (H610, B660, B760)           | ❌ Rarely               | Budget Intel desktops          |
+| Pre-2019 hardware                                     | ❌ UCSI didn't exist    | Older PCs                      |
 
-**Note on Billboard vs. e-marker:** USB-IF Billboard descriptors expose *Alternate Mode advertisements* on a device (e.g. a USB-C dock saying "I support DisplayPort Alt Mode") — they do **not** carry cable e-marker / VDO data. The cable's e-marker info lives on the cable's PD chip and is only reachable via UCSI Discover Identity (Phase 3).
+**Phase 1 and 1.5 work on 100% of Windows 10 / 11 machines** — that's the floor. Phase 2 and 3 ride on top when the hardware cooperates. If your USB-C ports come through a programmable PD controller exposed via ACPI (most laptops, some desktops), you get the full picture. If they're "data + 5 V" passive Type-C receptacles on a budget motherboard, you get Phase 1 / 1.5 only — which is still the majority of the useful diagnostic value for non-charging use cases.
 
-Phase 2 is a signed KMDF filter on the UCM-UCSI ACPI device exposing IOCTLs to userspace (EV signing + eventual WHQL). Phase 3 needs Windows 11 22H2 Sept Update+ on hardware that implements UCSI 2.0 — practically ~70% of modern Win 11 laptops, none of the older Intel / pre-Phoenix AMD ones.
+### Quick check on your machine
+
+Open Device Manager → "Universal Serial Bus controllers" or "USB Connector Managers". If you see a **USB Connector Manager** entry that's *running* (not stopped), Phase 2/3 will work once the driver lands. If those entries are missing or in Stopped state, your hardware doesn't expose UCSI — Phase 1 / 1.5 are still useful.
 
 ## Architecture
 
 ```
 UsbScope.sln
 ├── src/
-│   ├── UsbScope.Core/                    cross-platform models, provider interfaces, usb.ids DB
-│   ├── UsbScope.Providers.Windows/       SMBIOS / WMI / cfgmgr32 / CsWin32 interop
+│   ├── UsbScope.Core/                    cross-platform models, provider interfaces,
+│   │                                     usb.ids DB, USB-PD VDO decoder, Billboard parser
+│   ├── UsbScope.Providers.Windows/       SMBIOS / WMI / cfgmgr32 / hub IOCTL
+│   ├── UsbScope.Providers.Ucsi/          IOCTL client for the kernel driver
+│   ├── UsbScope.Driver/                  KMDF kernel driver scaffold (build separately)
 │   ├── UsbScope.Tray/                    WPF tray app
 │   └── UsbScope.Cli/                     `usbscope.exe --json`
 └── tests/
-    ├── UsbScope.Core.Tests/
-    └── UsbScope.Providers.Windows.Tests/
+    ├── UsbScope.Core.Tests/              models, usb.ids, VDO decoder, Billboard parser
+    └── UsbScope.Providers.Windows.Tests/ snapshot aggregator with fakes
 ```
 
-Providers are pluggable behind `IPortProvider`, `IPowerProvider`, `IVendorProvider`. A future `UcsiProvider` slots in for Phase 2 with no UI changes. The aggregator dedupes ports by `PortId` (stable, derived from the SMBIOS designator when available) so multiple providers can contribute data to the same port.
+Providers are pluggable behind `IPortProvider`, `IPowerProvider`, `IVendorProvider`. The aggregator dedupes ports by `PortId` (stable, from SMBIOS designator when available) so multiple providers can contribute data to the same port. `UcsiPortProvider` skips itself silently when the driver isn't installed.
 
 ## Requirements
 
-- Windows 11 23H2 or later
+- Windows 11 23H2 or later for Phase 2/3; Windows 10 1809+ for Phase 1/1.5
 - x64 or ARM64
 - .NET 10 Desktop Runtime (bundled in single-file publish)
+- For Phase 2/3 only: hardware with UCSI-exposed USB-C ports (see compat matrix above)
 
 ## Build
 
@@ -59,6 +74,8 @@ dotnet build
 dotnet run --project src/UsbScope.Tray
 dotnet run --project src/UsbScope.Cli -- --json
 ```
+
+Building the kernel driver (Phase 2) needs the WDK, the WDK VS extension, and MSVC Spectre-mitigated libs — see [`src/UsbScope.Driver/README.md`](src/UsbScope.Driver/README.md).
 
 ## License
 

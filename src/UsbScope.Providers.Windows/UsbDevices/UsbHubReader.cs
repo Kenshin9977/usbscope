@@ -58,6 +58,23 @@ internal sealed class UsbHubReader : IDisposable
         return MapSpeed(info.Value.Speed, info.Value.DeviceDescriptor);
     }
 
+    /// Reads the USB Billboard descriptor of the device on
+    /// `(hubInstanceId, portNumber)`. Returns null when the device
+    /// doesn't advertise Billboard (the common case for keyboards,
+    /// mice, storage, etc.) or when the BOS GET_DESCRIPTOR control
+    /// transfer doesn't complete.
+    public Core.Models.BillboardInfo? TryReadBillboard(string hubInstanceId, uint portNumber)
+    {
+        if (string.IsNullOrEmpty(hubInstanceId) || portNumber == 0)
+            return null;
+
+        var handle = GetHandle(hubInstanceId);
+        if (handle is null || handle.IsInvalid)
+            return null;
+
+        return BillboardReader.TryRead(handle, portNumber);
+    }
+
     private SafeFileHandle? GetHandle(string hubInstanceId)
     {
         return _hubHandles.GetOrAdd(hubInstanceId, key =>

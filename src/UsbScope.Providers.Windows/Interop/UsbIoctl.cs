@@ -13,10 +13,13 @@ internal static class UsbIoctl
 {
     // CTL_CODE(FILE_DEVICE_USB=0x22, function, METHOD_BUFFERED=0, FILE_ANY_ACCESS=0)
     // = (0x22 << 16) | (function << 2)
+    // usbioctl.h function codes: 258=GET_NODE_INFO, 259=GET_NODE_CONNECTION_INFO,
+    // 260=GET_DESCRIPTOR_FROM_NODE_CONNECTION, 274=GET_NODE_CONNECTION_INFO_EX,
+    // 276=GET_NODE_CONNECTION_INFO_EX_V2.
     public const uint IOCTL_USB_GET_NODE_INFORMATION                    = 0x00220408;
+    public const uint IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION     = 0x00220410;
     public const uint IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX      = 0x00220448;
     public const uint IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX_V2   = 0x00220460;
-    public const uint IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION     = 0x0022040C;
 
     // USB_DEVICE_SPEED (usbspec.h)
     public const byte UsbLowSpeed       = 0;

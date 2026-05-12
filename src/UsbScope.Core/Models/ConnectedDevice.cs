@@ -12,4 +12,8 @@ public sealed record ConnectedDevice
     public ushort? ProductId { get; init; }
     public UsbDataRate NegotiatedRate { get; init; } = UsbDataRate.Unknown;
     public string? DeviceClass { get; init; }
+    /// USB-C Alt Mode advertisements decoded from the device's
+    /// Billboard descriptor, when present. Null on devices that
+    /// don't advertise Billboard (most plain USB-A peripherals).
+    public BillboardInfo? Billboard { get; init; }
 }

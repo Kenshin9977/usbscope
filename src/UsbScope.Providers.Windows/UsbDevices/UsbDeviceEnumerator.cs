@@ -71,11 +71,15 @@ internal static class UsbDeviceEnumerator
                 ?? WmiQueryHelper.GetString(row, "Description");
 
             // Read topology (parent hub instance + port number) and ask
-            // the hub IOCTL layer for authoritative speed.
+            // the hub IOCTL layer for authoritative speed + Billboard.
             var topo = DeviceTopologyReader.Read(instanceId);
-            var speed = topo is { ParentInstanceId: { } parent, PortAddress: { } addr }
-                ? hubReader.GetNegotiatedSpeed(parent, addr)
-                : UsbDataRate.Unknown;
+            UsbDataRate speed = UsbDataRate.Unknown;
+            BillboardInfo? billboard = null;
+            if (topo is { ParentInstanceId: { } parent, PortAddress: { } addr })
+            {
+                speed = hubReader.GetNegotiatedSpeed(parent, addr);
+                billboard = hubReader.TryReadBillboard(parent, addr);
+            }
 
             yield return new ConnectedDevice
             {
@@ -86,6 +90,7 @@ internal static class UsbDeviceEnumerator
                 ProductId = pid,
                 NegotiatedRate = speed,
                 DeviceClass = WmiQueryHelper.GetString(row, "PNPClass"),
+                Billboard = billboard,
             };
 
             await Task.Yield();

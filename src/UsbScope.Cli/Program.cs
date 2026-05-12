@@ -1,4 +1,5 @@
 using System.Text.Json;
+using UsbScope.Core.Billboard;
 using UsbScope.Core.Models;
 using UsbScope.Providers.Windows;
 
@@ -69,6 +70,12 @@ internal static class Program
                     Console.WriteLine($"      Vendor : {d.Manufacturer}");
                 if (d.NegotiatedRate != UsbDataRate.Unknown)
                     Console.WriteLine($"      Speed  : {SpeedLabel(d.NegotiatedRate)}");
+                if (d.Billboard is { AlternateModes.Count: > 0 } bb)
+                {
+                    var modes = string.Join(", ",
+                        bb.AlternateModes.Select(a => AltModeSvidRegistry.Describe(a.Svid)));
+                    Console.WriteLine($"      AltMode: {modes}");
+                }
             }
         }
 
