@@ -12,28 +12,76 @@ A KMDF software-only driver that exposes a control device (`\\.\UsbScope`) and a
 
 ## Prerequisites
 
-1. **Windows Driver Kit (WDK)** matching the Windows SDK on the box. Install via winget:
+The driver targets the **10.0.22621.0** SDK/WDK (pinned in the `.vcxproj`). Run
+each `winget` line from an **elevated** PowerShell.
+
+1. **Visual Studio 2022** — Community, Professional or Enterprise. **Not Build
+   Tools**: the WDK build integration ships as a VS extension, and Build Tools
+   does not support extensions (`NoApplicableSKUsException`). Install with the
+   C++ workload, the 22621 SDK, and the Spectre-mitigated libs (without the last,
+   the link fails with `LNK1104: cannot open file 'libcmt.lib'`):
    ```powershell
-   winget install Microsoft.WindowsWDK.10.0.26100
+   winget install --id Microsoft.VisualStudio.2022.Community --override `
+     "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre"
    ```
-2. **Visual Studio 2022** with the C++ Native Desktop workload.
-3. **MSVC Spectre-mitigated libraries** (Visual Studio Installer → Individual components → `MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs`). Without these, the build fails with `LNK1104: cannot open file 'libcmt.lib'` (Spectre variant).
-4. **Test signing enabled** on the target machine for dev installs:
+2. **Windows Driver Kit (WDK) 22621**:
    ```powershell
-   bcdedit /set testsigning on
+   winget install Microsoft.WindowsWDK.10.0.22621
    ```
-   Reboot. A "Test Mode" watermark appears on the desktop until you turn it off.
+3. **Wire the WDK into Visual Studio.** The winget WDK does not integrate itself
+   with a current VS: its standalone `WDK.vsix` version-gates against VS 17.14+
+   (`the extension version is lower than the version requested`), and it leaves
+   the `WDKContentRoot` registry value empty (without it the compile fails with
+   `C1083: 'ntddk.h' not found`). Both are fixed by copying the extension's
+   MSBuild targets into VS and setting the root — run once, elevated:
+   ```powershell
+   $vsix = "${env:ProgramFiles(x86)}\Windows Kits\10\Vsix\VS2022\10.0.22621.0\WDK.vsix"
+   $vs   = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+   $tmp  = "$env:TEMP\wdkvsix"; Remove-Item $tmp -Recurse -Force -EA SilentlyContinue
+   Add-Type -AssemblyName System.IO.Compression.FileSystem
+   [IO.Compression.ZipFile]::ExtractToDirectory($vsix, $tmp)
+   Copy-Item (Join-Path $tmp '$MSBuild\*') "$vs\MSBuild" -Recurse -Force
+   'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots',
+   'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots' | ForEach-Object {
+     New-ItemProperty $_ -Name WDKContentRoot -Value "${env:ProgramFiles(x86)}\Windows Kits\10\" -PropertyType String -Force | Out-Null }
+   ```
+   > CI / headless alternative: the [EWDK](https://learn.microsoft.com/windows-hardware/drivers/develop/using-the-enterprise-wdk)
+   > is a self-contained build environment (no VS, no VSIX, no registry). Mount it,
+   > run `LaunchBuildEnv.cmd`, then the same `msbuild` line below.
 
 ## Build (developer flow)
 
 ```powershell
 cd src\UsbScope.Driver
-msbuild UsbScope.Driver.vcxproj /p:Configuration=Debug /p:Platform=x64
+msbuild UsbScope.Driver.vcxproj /p:Configuration=Release /p:Platform=x64
 ```
 
-Output goes to `x64\Debug\UsbScope.Driver\` and contains `UsbScope.sys` plus a generated test certificate. The certificate is regenerated each build — fine for dev, **don't ship it**.
+Output is `x64\Release\UsbScope.Driver.sys` — **unsigned**. Build-time signing is
+off in the project on purpose (recent `signtool` requires `/fd`, which the WDK's
+older signing targets don't pass, and test-cert generation depends on cert-store
+state — both make it environment-fragile and pointless for a CI compile-check).
+Sign explicitly for local install (next section) or for distribution (below).
 
 ## Install (dev / test signing)
+
+The build is unsigned, so x64 Windows won't load it as-is. Test-sign it, trust
+the cert, and turn on test signing — all one-time except the signing itself:
+
+```powershell
+# 1. a self-signed code-signing cert (once)
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=UsbScope Test" `
+          -CertStoreLocation Cert:\CurrentUser\My -FriendlyName "UsbScope Test Cert"
+# 2. sign the driver — /fd is required by current signtool
+$signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+             Sort-Object FullName | Select-Object -Last 1).FullName
+& $signtool sign /fd SHA256 /sha1 $cert.Thumbprint x64\Release\UsbScope.Driver.sys
+# 3. trust it so kernel signature checks pass (once)
+Export-Certificate -Cert $cert -FilePath "$env:TEMP\UsbScopeTest.cer" | Out-Null
+Import-Certificate -FilePath "$env:TEMP\UsbScopeTest.cer" -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+Import-Certificate -FilePath "$env:TEMP\UsbScopeTest.cer" -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
+# 4. enable test signing, then REBOOT (a "Test Mode" watermark appears)
+bcdedit /set testsigning on
+```
 
 The driver installs as a kernel service, no INF needed (it has no PnP device to bind to):
 

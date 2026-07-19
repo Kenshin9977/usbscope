@@ -64,7 +64,7 @@ Providers are pluggable behind `IPortProvider`, `IPowerProvider`, `IVendorProvid
 
 - Windows 11 23H2 or later for Phase 2/3; Windows 10 1809+ for Phase 1/1.5
 - x64 or ARM64
-- .NET 10 Desktop Runtime (bundled in single-file publish)
+- .NET 10 Desktop Runtime to run (bundled in single-file publish); .NET 10 SDK to build from source (pinned in `global.json`)
 - For Phase 2/3 only: hardware with UCSI-exposed USB-C ports (see compat matrix above)
 
 ## Build
