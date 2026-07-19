@@ -21,16 +21,8 @@ env:
 
 jobs:
   build:
-    name: Build & test (${{ matrix.rid }})
+    name: Build & test
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rid: win-x64
-            test: true
-          - rid: win-arm64
-            test: false
 
     steps:
       - uses: actions/checkout@v7
@@ -44,25 +36,28 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-${{ matrix.rid }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.rid }}-nuget-
+            ${{ runner.os }}-nuget-
 
+      # No -r here: `dotnet build`/`restore` on a .sln with a RID fails with
+      # NETSDK1134 on the .NET 10 SDK. The managed projects are AnyCPU, so a
+      # plain build compiles everything; per-RID output is a publish concern
+      # (see the release pipeline), not a CI compile-check.
       - name: Restore
-        run: dotnet restore -r ${{ matrix.rid }}
+        run: dotnet restore
 
       - name: Build
-        run: dotnet build -c Release --no-restore -r ${{ matrix.rid }}
+        run: dotnet build -c Release --no-restore
 
       - name: Test
-        if: matrix.test
         run: dotnet test -c Release --no-build --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
-        if: matrix.test && always()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ matrix.rid }}
+          name: test-results
           path: '**/TestResults/*.trx'
           if-no-files-found: ignore
 
